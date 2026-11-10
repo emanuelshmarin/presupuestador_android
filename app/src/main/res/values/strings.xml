@@ -1,0 +1,18 @@
+<resources>
+    <!-- Login - inicio -->
+    <string name="app_name">Presupuestador</string>
+    <string name="titulo_login">Presupuestador</string>
+    <string name="subtitulo_login">Iniciar sesión</string>
+    <string name="label_email">Email</string>
+    <string name="hint_email">tu@email.com</string>
+    <string name="label_password">Contraseña</string>
+    <string name="hint_password">••••••••</string>
+    <string name="btn_ingresar">Ingresar</string>
+    <string name="txt_ir_registro">¿No tenés cuenta? Registrate</string>
+    <!-- Registro -->
+    <string name="titulo_registro">Crear cuenta</string>
+    <string name="label_nombre">Nombre</string>
+    <string name="hint_nombre">Tu nombre</string>
+    <string name="btn_registrar">Registrarme</string>
+    <string name="txt_volver_login">¿Ya tenés cuenta? Iniciá sesión</string>
+</resources>
