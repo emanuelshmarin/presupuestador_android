@@ -105,7 +105,11 @@ public class MainActivity extends AppCompatActivity {
     // --- MANEJO DE RESPUESTAS ---
     private void manejarRespuestaExitosa(JSONObject response) {
         String nombre = response.optString("nombre", "usuario");
-        Toast.makeText(this, "¡Bienvenido, " + nombre + "!", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "¡Bienvenido, " + nombre + "!", Toast.LENGTH_SHORT).show();
+
+        Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+        startActivity(intent);
+        finish();
     }
 
     private void manejarError(com.android.volley.VolleyError error) {

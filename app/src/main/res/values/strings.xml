@@ -15,4 +15,6 @@
     <string name="hint_nombre">Tu nombre</string>
     <string name="btn_registrar">Registrarme</string>
     <string name="txt_volver_login">¿Ya tenés cuenta? Iniciá sesión</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
