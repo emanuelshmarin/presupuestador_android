@@ -17,4 +17,21 @@
     <string name="txt_volver_login">¿Ya tenés cuenta? Iniciá sesión</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <!-- LAS OCPIONES SE NUEVO PRECIO -->
+    <string-array name="categorias_precio">
+        <item>Cableado</item>
+        <item>Canalizacion</item>
+        <item>Instalacion artefactos</item>
+        <item>Instalacion luminarias</item>
+        <item>Tableros y PE</item>
+    </string-array>
+
+    <string-array name="unidades_precio">
+        <item>Boca</item>
+        <item>Global / Paquete</item>
+        <item>Metro lienal (m)</item>
+        <item>Módulo</item>
+        <item>Unidad</item>
+    </string-array>
 </resources>

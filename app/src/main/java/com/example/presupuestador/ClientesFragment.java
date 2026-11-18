@@ -1,64 +1,169 @@
 package com.example.presupuestador;
 
 import android.os.Bundle;
-
 import androidx.fragment.app.Fragment;
-
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TextView;
+import com.android.volley.Request;
+import com.android.volley.toolbox.JsonArrayRequest;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import android.widget.EditText;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link ClientesFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class ClientesFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    private RecyclerView recycler;
+    private ClienteAdapter adapter;
 
     public ClientesFragment() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment ClientesFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static ClientesFragment newInstance(String param1, String param2) {
-        ClientesFragment fragment = new ClientesFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_clientes, container, false);
+        View view = inflater.inflate(R.layout.fragment_clientes, container, false);
+
+        recycler = view.findViewById(R.id.recyclerClientes);
+        recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+
+        pedirClientes();
+
+        Button btnNuevo = view.findViewById(R.id.btnNuevoCliente);
+        btnNuevo.setOnClickListener(v -> mostrarDialogoAgregarCliente());
+
+        return view;
+    }
+
+    private void pedirClientes() {
+        String url = ApiClient.BASE_URL + "clientes.php";
+
+        JsonArrayRequest request = new JsonArrayRequest(
+                Request.Method.GET,
+                url,
+                null,
+                response -> {
+                    Log.d("CLIENTES", "Respuesta: " + response.toString());
+                    adapter = new ClienteAdapter(response);
+                    recycler.setAdapter(adapter);
+                },
+                error -> {
+                    Log.e("CLIENTES", "Error: " + error.toString());
+                }
+        );
+
+        ApiClient.getInstance(requireContext()).getCola().add(request);
+    }
+
+    private void mostrarDialogoAgregarCliente() {
+        View dialogView = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_agregar_cliente, null);
+
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setView(dialogView)
+                .setPositiveButton("Guardar", (dialog, which) -> {
+                    // 1. Leer los datos del formulario
+                    EditText etNombre = dialogView.findViewById(R.id.etNombreCliente);
+                    EditText etApellido = dialogView.findViewById(R.id.etApellidoCliente);
+                    EditText etTelefono = dialogView.findViewById(R.id.etTelefonoCliente);
+                    EditText etEmail = dialogView.findViewById(R.id.etEmailCliente);
+                    EditText etDireccion = dialogView.findViewById(R.id.etDireccionCliente);
+
+                    String nombre = etNombre.getText().toString().trim();
+                    String apellido = etApellido.getText().toString().trim();
+                    String telefono = etTelefono.getText().toString().trim();
+                    String email = etEmail.getText().toString().trim();
+                    String direccion = etDireccion.getText().toString().trim();
+
+                    // 2. Validar
+                    if (nombre.isEmpty()) {
+                        android.widget.Toast.makeText(requireContext(), "El nombre es obligatorio", android.widget.Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // 3. Armar el JSON
+                    JSONObject body = new JSONObject();
+                    try {
+                        body.put("nombre", nombre);
+                        body.put("apellido", apellido);
+                        body.put("telefono", telefono);
+                        body.put("email", email);
+                        body.put("direccion", direccion);
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(requireContext(), "Error armando los datos", android.widget.Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // 4. Enviar el POST
+                    String url = ApiClient.BASE_URL + "clientes.php";
+                    com.android.volley.toolbox.JsonObjectRequest request = new com.android.volley.toolbox.JsonObjectRequest(
+                            Request.Method.POST,
+                            url,
+                            body,
+                            response -> {
+                                android.widget.Toast.makeText(requireContext(), "Cliente guardado", android.widget.Toast.LENGTH_SHORT).show();
+                                pedirClientes(); // Recargar la lista
+                            },
+                            error -> {
+                                Log.e("CLIENTES", "Error al guardar: " + error.toString());
+                                android.widget.Toast.makeText(requireContext(), "Error al guardar el cliente", android.widget.Toast.LENGTH_SHORT).show();
+                            }
+                    );
+                    ApiClient.getInstance(requireContext()).getCola().add(request);
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    // --- Adaptador interno ---
+    public static class ClienteAdapter extends RecyclerView.Adapter<ClienteAdapter.ViewHolder> {
+
+        private final JSONArray datos;
+
+        public ClienteAdapter(JSONArray datos) {
+            this.datos = datos;
+        }
+
+        @Override
+        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_cliente, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(ViewHolder holder, int position) {
+            try {
+                JSONObject cliente = datos.getJSONObject(position);
+                String nombre = cliente.optString("nombre", "") + " " + cliente.optString("apellido", "");
+                holder.txtNombreCliente.setText(nombre.trim());
+                holder.txtTelefonoCliente.setText(cliente.optString("telefono", "-"));
+                holder.txtLocalidadCliente.setText(cliente.optString("direccion", "-"));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public int getItemCount() {
+            return datos.length();
+        }
+
+        public static class ViewHolder extends RecyclerView.ViewHolder {
+            TextView txtNombreCliente, txtTelefonoCliente, txtLocalidadCliente;
+
+            public ViewHolder(View itemView) {
+                super(itemView);
+                txtNombreCliente = itemView.findViewById(R.id.txtNombreCliente);
+                txtTelefonoCliente = itemView.findViewById(R.id.txtTelefonoCliente);
+                txtLocalidadCliente = itemView.findViewById(R.id.txtLocalidadCliente);
+            }
+        }
     }
 }

@@ -64,22 +64,14 @@
             android:text="Mi precio"
             android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Acciones"
-            android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Acá después van las filas de la tabla -->
-    <TextView
-        android:id="@+id/txtSinDatosPrecios"
+    <!-- Lista de precios -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerPrecios"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center"
-        android:text="No hay precios cargados todavía"
-        android:textSize="14sp" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp" />
 
 </LinearLayout>

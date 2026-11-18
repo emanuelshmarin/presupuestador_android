@@ -1,6 +1,8 @@
 package com.example.presupuestador;
 
 import android.os.Bundle;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -16,8 +18,8 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.inflateMenu(R.menu.menu_arriba);
         toolbar.setOnMenuItemClickListener(item -> {
+            Toast.makeText(this, "HIZO CLICK", Toast.LENGTH_SHORT).show();
             if (item.getItemId() == R.id.action_cerrar_sesion) {
                 new androidx.appcompat.app.AlertDialog.Builder(this)
                         .setTitle("Cerrar sesión")
@@ -33,6 +35,7 @@ public class HomeActivity extends AppCompatActivity {
             }
             return false;
         });
+        Toast.makeText(this, "Listener registrado", Toast.LENGTH_SHORT).show();
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
 

@@ -95,13 +95,12 @@
     </LinearLayout>
 
     <!-- Acá después van las filas de la tabla -->
-    <TextView
-        android:id="@+id/txtSinDatos"
+    <!-- Lista de presupuestos -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerPresupuestos"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center"
-        android:text="No hay presupuestos todavía"
-        android:textSize="14sp" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp" />
 
 </LinearLayout>
