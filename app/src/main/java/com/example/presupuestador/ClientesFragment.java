@@ -9,20 +9,20 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import com.android.volley.Request;
 import com.android.volley.toolbox.JsonArrayRequest;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import android.widget.EditText;
 
 public class ClientesFragment extends Fragment {
 
     private RecyclerView recycler;
     private ClienteAdapter adapter;
+    private JSONArray listaClientesCompleta = new JSONArray();
 
     public ClientesFragment() {
-        // Required empty public constructor
     }
 
     @Override
@@ -34,6 +34,21 @@ public class ClientesFragment extends Fragment {
         recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         pedirClientes();
+
+        // Buscador local
+        EditText etBuscar = view.findViewById(R.id.etBuscarCliente);
+        etBuscar.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filtrarClientes(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
 
         Button btnNuevo = view.findViewById(R.id.btnNuevoCliente);
         btnNuevo.setOnClickListener(v -> mostrarDialogoAgregarCliente());
@@ -50,6 +65,7 @@ public class ClientesFragment extends Fragment {
                 null,
                 response -> {
                     Log.d("CLIENTES", "Respuesta: " + response.toString());
+                    listaClientesCompleta = response; // Guardamos la lista completa
                     adapter = new ClienteAdapter(response);
                     recycler.setAdapter(adapter);
                 },
@@ -68,7 +84,6 @@ public class ClientesFragment extends Fragment {
         new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setView(dialogView)
                 .setPositiveButton("Guardar", (dialog, which) -> {
-                    // 1. Leer los datos del formulario
                     EditText etNombre = dialogView.findViewById(R.id.etNombreCliente);
                     EditText etApellido = dialogView.findViewById(R.id.etApellidoCliente);
                     EditText etTelefono = dialogView.findViewById(R.id.etTelefonoCliente);
@@ -81,13 +96,11 @@ public class ClientesFragment extends Fragment {
                     String email = etEmail.getText().toString().trim();
                     String direccion = etDireccion.getText().toString().trim();
 
-                    // 2. Validar
                     if (nombre.isEmpty()) {
                         android.widget.Toast.makeText(requireContext(), "El nombre es obligatorio", android.widget.Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    // 3. Armar el JSON
                     JSONObject body = new JSONObject();
                     try {
                         body.put("nombre", nombre);
@@ -100,7 +113,6 @@ public class ClientesFragment extends Fragment {
                         return;
                     }
 
-                    // 4. Enviar el POST
                     String url = ApiClient.BASE_URL + "clientes.php";
                     com.android.volley.toolbox.JsonObjectRequest request = new com.android.volley.toolbox.JsonObjectRequest(
                             Request.Method.POST,
@@ -108,7 +120,7 @@ public class ClientesFragment extends Fragment {
                             body,
                             response -> {
                                 android.widget.Toast.makeText(requireContext(), "Cliente guardado", android.widget.Toast.LENGTH_SHORT).show();
-                                pedirClientes(); // Recargar la lista
+                                pedirClientes();
                             },
                             error -> {
                                 Log.e("CLIENTES", "Error al guardar: " + error.toString());
@@ -119,6 +131,26 @@ public class ClientesFragment extends Fragment {
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+
+    private void filtrarClientes(String texto) {
+        if (listaClientesCompleta == null) return;
+
+        JSONArray filtrados = new JSONArray();
+        for (int i = 0; i < listaClientesCompleta.length(); i++) {
+            try {
+                JSONObject cliente = listaClientesCompleta.getJSONObject(i);
+                String nombre = cliente.optString("nombre", "") + " " + cliente.optString("apellido", "");
+                if (nombre.toLowerCase().contains(texto.toLowerCase())) {
+                    filtrados.put(cliente);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        adapter = new ClienteAdapter(filtrados);
+        recycler.setAdapter(adapter);
     }
 
     // --- Adaptador interno ---

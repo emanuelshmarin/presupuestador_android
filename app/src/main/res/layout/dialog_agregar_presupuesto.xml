@@ -24,30 +24,27 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
-    <!-- Selector de trabajo -->
+    <!-- Título de la sección de trabajos -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="Trabajo" />
+        android:text="Trabajos"
+        android:textStyle="bold" />
 
-    <Spinner
-        android:id="@+id/spinnerTrabajo"
+    <!-- Contenedor donde van las filas de trabajos -->
+    <LinearLayout
+        android:id="@+id/contenedorTrabajos"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
 
-    <!-- Cantidad -->
-    <TextView
+    <!-- Botón para agregar más trabajos -->
+    <Button
+        android:id="@+id/btnAgregarTrabajo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="Cantidad" />
-
-    <EditText
-        android:id="@+id/etCantidad"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Ej: 1"
-        android:inputType="number" />
+        android:layout_marginTop="8dp"
+        android:text="+ Agregar otro trabajo" />
 
 </LinearLayout>
