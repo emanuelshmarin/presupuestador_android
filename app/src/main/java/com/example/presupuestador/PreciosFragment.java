@@ -45,57 +45,30 @@ public class PreciosFragment extends Fragment {
     }
 
     private void pedirPrecios() {
-        String url = ApiClient.BASE_URL + "precios.php";
+        ApiHttp.pedir("GET", "precios.php", null, null, (codigo, cuerpo) -> {
+            if (!isAdded()) return;
+            Log.d("PRECIOS", "GET codigo: " + codigo);
 
-        JsonArrayRequest request = new JsonArrayRequest(
-                Request.Method.GET,
-                url,
-                null,
-                response -> {
-                    Log.d("PRECIOS", "Respuesta: " + response.toString());
-                    adapter = new PrecioAdapter(response, this);
+            if (codigo == 200) {
+                try {
+                    adapter = new PrecioAdapter(new JSONArray(cuerpo), this);
                     recycler.setAdapter(adapter);
-                },
-                error -> {
-                    Log.e("PRECIOS", "Error: " + error.toString());
+                } catch (Exception e) {
+                    android.widget.Toast.makeText(requireContext(), "Respuesta inválida del servidor", android.widget.Toast.LENGTH_LONG).show();
                 }
-        );
-
-        ApiClient.getInstance(requireContext()).getCola().add(request);
+            } else if (codigo == -1) {
+                android.widget.Toast.makeText(requireContext(), "Sin conexión con el servidor", android.widget.Toast.LENGTH_LONG).show();
+            } else {
+                android.widget.Toast.makeText(requireContext(), "Error al cargar precios (código " + codigo + ")", android.widget.Toast.LENGTH_LONG).show();
+            }
+        });
     }
-
     private void mostrarDialogoAgregar() {
         View dialogView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_agregar_precio, null);
 
         Spinner spinnerCategoria = dialogView.findViewById(R.id.spinnerCategoria);
         Spinner spinnerUnidad = dialogView.findViewById(R.id.spinnerUnidad);
-
-        // Pedir categorías al servidor
-        String urlCategorias = ApiClient.BASE_URL + "categorias.php";
-        JsonArrayRequest requestCategorias = new JsonArrayRequest(
-                Request.Method.GET,
-                urlCategorias,
-                null,
-                response -> {
-                    ArrayAdapter<Opcion> adapterCategoria = new ArrayAdapter<>(
-                            requireContext(),
-                            android.R.layout.simple_spinner_item
-                    );
-                    adapterCategoria.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                    for (int i = 0; i < response.length(); i++) {
-                        try {
-                            JSONObject obj = response.getJSONObject(i);
-                            adapterCategoria.add(new Opcion(obj.getInt("id"), obj.getString("descripcion")));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    spinnerCategoria.setAdapter(adapterCategoria);
-                },
-                error -> Log.e("CATEGORIAS", "Error: " + error.toString())
-        );
-        ApiClient.getInstance(requireContext()).getCola().add(requestCategorias);
 
         // Pedir unidades al servidor
         String urlUnidades = ApiClient.BASE_URL + "unidades.php";
@@ -154,21 +127,27 @@ public class PreciosFragment extends Fragment {
                         return;
                     }
 
-                    String url = ApiClient.BASE_URL + "precios.php";
-                    com.android.volley.toolbox.JsonObjectRequest request = new com.android.volley.toolbox.JsonObjectRequest(
-                            Request.Method.POST,
-                            url,
-                            body,
-                            response -> {
-                                android.widget.Toast.makeText(requireContext(), "Precio guardado", android.widget.Toast.LENGTH_SHORT).show();
-                                pedirPrecios();
-                            },
-                            error -> {
-                                Log.e("PRECIOS", "Error al guardar: " + error.toString());
-                                android.widget.Toast.makeText(requireContext(), "Error al guardar el precio", android.widget.Toast.LENGTH_SHORT).show();
-                            }
-                    );
-                    ApiClient.getInstance(requireContext()).getCola().add(request);
+                    ApiHttp.pedir("POST", "precios.php", body.toString(),
+                            "application/json; charset=UTF-8",
+                            (codigo, cuerpo) -> {
+                                if (!isAdded()) return;
+                                Log.d("PRECIOS", "POST codigo: " + codigo + " cuerpo: " + cuerpo);
+
+                                if (codigo == 200 || codigo == 201) {
+                                    android.widget.Toast.makeText(requireContext(), "Precio guardado", android.widget.Toast.LENGTH_SHORT).show();
+                                    pedirPrecios();
+                                } else if (codigo == 400) {
+                                    String mensaje = "Datos inválidos";
+                                    try {
+                                        mensaje = new JSONObject(cuerpo).optString("error", mensaje);
+                                    } catch (Exception ignorada) { }
+                                    android.widget.Toast.makeText(requireContext(), mensaje, android.widget.Toast.LENGTH_LONG).show();
+                                } else if (codigo == -1) {
+                                    android.widget.Toast.makeText(requireContext(), "Sin conexión con el servidor", android.widget.Toast.LENGTH_LONG).show();
+                                } else {
+                                    android.widget.Toast.makeText(requireContext(), "Error (código " + codigo + ")", android.widget.Toast.LENGTH_LONG).show();
+                                }
+                            });
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -181,10 +160,40 @@ public class PreciosFragment extends Fragment {
                     if (which == 0) {
                         android.widget.Toast.makeText(requireContext(), "Modificar (próximo paso)", android.widget.Toast.LENGTH_SHORT).show();
                     } else {
-                        android.widget.Toast.makeText(requireContext(), "Eliminar (próximo paso)", android.widget.Toast.LENGTH_SHORT).show();
+                        confirmarEliminar(precio);   // <-- CAMBIO: antes era un Toast
                     }
                 })
                 .show();
+    }
+
+    private void confirmarEliminar(JSONObject precio) {
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Eliminar precio")
+                .setMessage("¿Seguro que querés eliminar \"" + precio.optString("trabajo") + "\"?")
+                .setPositiveButton("Sí, eliminar", (dialog, which) -> eliminarPrecio(precio.optInt("id_trabajo")))  // <-- id_trabajo
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void eliminarPrecio(int idTrabajo) {
+        ApiHttp.pedir("DELETE", "precios.php",
+                "id_trabajo=" + idTrabajo,
+                "application/x-www-form-urlencoded; charset=UTF-8",
+                (codigo, cuerpo) -> {
+                    if (!isAdded()) return;   // por si el fragment ya no está en pantalla
+                    Log.d("PRECIOS", "DELETE codigo: " + codigo + " cuerpo: " + cuerpo);
+
+                    if (codigo == 200) {
+                        android.widget.Toast.makeText(requireContext(), "Precio eliminado", android.widget.Toast.LENGTH_SHORT).show();
+                        pedirPrecios();
+                    } else if (codigo == 409) {
+                        android.widget.Toast.makeText(requireContext(), "No se puede eliminar: ya está en un presupuesto", android.widget.Toast.LENGTH_LONG).show();
+                    } else if (codigo == -1) {
+                        android.widget.Toast.makeText(requireContext(), "Sin conexión con el servidor", android.widget.Toast.LENGTH_LONG).show();
+                    } else {
+                        android.widget.Toast.makeText(requireContext(), "Error (código " + codigo + ")", android.widget.Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 
     // --- Adaptador interno ---
