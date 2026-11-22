@@ -13,28 +13,7 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_home);
-
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar); // <-- ESTO FALTABA
-        toolbar.inflateMenu(R.menu.menu_arriba);
-        toolbar.setOnMenuItemClickListener(item -> {
-            Toast.makeText(this, "CLIC EN MENU", Toast.LENGTH_SHORT).show(); // <-- DIAGNÓSTICO
-            if (item.getItemId() == R.id.action_cerrar_sesion) {
-                new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle("Cerrar sesión")
-                        .setMessage("¿Estás seguro que querés cerrar sesión?")
-                        .setPositiveButton("Sí", (dialog, which) -> {
-                            android.content.Intent intent = new android.content.Intent(this, MainActivity.class);
-                            intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                            startActivity(intent);
-                        })
-                        .setNegativeButton("Cancelar", null)
-                        .show();
-                return true;
-            }
-            return false;
-        });
+        setContentView(R.layout.activity_home); // <-- ESTO FALTABA
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
 

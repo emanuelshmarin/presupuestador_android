@@ -22,6 +22,7 @@ public class PreciosFragment extends Fragment {
 
     private RecyclerView recycler;
     private PrecioAdapter adapter;
+    private JSONObject precioSeleccionado = null;
 
     public PreciosFragment() {
         // Required empty public constructor
@@ -52,7 +53,7 @@ public class PreciosFragment extends Fragment {
                 null,
                 response -> {
                     Log.d("PRECIOS", "Respuesta: " + response.toString());
-                    adapter = new PrecioAdapter(response);
+                    adapter = new PrecioAdapter(response, this);
                     recycler.setAdapter(adapter);
                 },
                 error -> {
@@ -123,11 +124,9 @@ public class PreciosFragment extends Fragment {
         ApiClient.getInstance(requireContext()).getCola().add(requestUnidades);
 
         // Mostrar el diálogo
-        // Mostrar el diálogo
         new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setView(dialogView)
                 .setPositiveButton("Guardar", (dialog, which) -> {
-                    // 1. Leer los datos del formulario
                     Opcion categoriaSeleccionada = (Opcion) spinnerCategoria.getSelectedItem();
                     Opcion unidadSeleccionada = (Opcion) spinnerUnidad.getSelectedItem();
                     EditText etTrabajo = dialogView.findViewById(R.id.etTrabajo);
@@ -135,7 +134,6 @@ public class PreciosFragment extends Fragment {
                     String trabajo = etTrabajo.getText().toString().trim();
                     String precioStr = etPrecio.getText().toString().trim();
 
-                    // 2. Validar
                     if (categoriaSeleccionada == null || unidadSeleccionada == null) {
                         android.widget.Toast.makeText(requireContext(), "Elegí categoría y unidad", android.widget.Toast.LENGTH_SHORT).show();
                         return;
@@ -145,7 +143,6 @@ public class PreciosFragment extends Fragment {
                         return;
                     }
 
-                    // 3. Armar el JSON
                     JSONObject body = new JSONObject();
                     try {
                         body.put("id_categoria", categoriaSeleccionada.id);
@@ -157,7 +154,6 @@ public class PreciosFragment extends Fragment {
                         return;
                     }
 
-                    // 4. Enviar el POST
                     String url = ApiClient.BASE_URL + "precios.php";
                     com.android.volley.toolbox.JsonObjectRequest request = new com.android.volley.toolbox.JsonObjectRequest(
                             Request.Method.POST,
@@ -165,7 +161,7 @@ public class PreciosFragment extends Fragment {
                             body,
                             response -> {
                                 android.widget.Toast.makeText(requireContext(), "Precio guardado", android.widget.Toast.LENGTH_SHORT).show();
-                                pedirPrecios(); // Recargar la lista
+                                pedirPrecios();
                             },
                             error -> {
                                 Log.e("PRECIOS", "Error al guardar: " + error.toString());
@@ -177,13 +173,29 @@ public class PreciosFragment extends Fragment {
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
+
+    private void mostrarDialogoOpciones(JSONObject precio) {
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("¿Qué querés hacer?")
+                .setItems(new String[]{"Modificar", "Eliminar"}, (dialog, which) -> {
+                    if (which == 0) {
+                        android.widget.Toast.makeText(requireContext(), "Modificar (próximo paso)", android.widget.Toast.LENGTH_SHORT).show();
+                    } else {
+                        android.widget.Toast.makeText(requireContext(), "Eliminar (próximo paso)", android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
+    }
+
     // --- Adaptador interno ---
     public static class PrecioAdapter extends RecyclerView.Adapter<PrecioAdapter.ViewHolder> {
 
         private final JSONArray datos;
+        private final PreciosFragment fragment;
 
-        public PrecioAdapter(JSONArray datos) {
+        public PrecioAdapter(JSONArray datos, PreciosFragment fragment) {
             this.datos = datos;
+            this.fragment = fragment;
         }
 
         @Override
@@ -201,6 +213,10 @@ public class PreciosFragment extends Fragment {
                 holder.txtTrabajo.setText(precio.optString("trabajo", "-"));
                 holder.txtUnidad.setText(precio.optString("unidad", "-"));
                 holder.txtPrecio.setText("$" + precio.optString("precio", "0"));
+                holder.itemView.setOnClickListener(v -> {
+                    fragment.precioSeleccionado = precio;
+                    fragment.mostrarDialogoOpciones(precio);
+                });
             } catch (Exception e) {
                 e.printStackTrace();
             }
