@@ -8,7 +8,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Agregar cliente"
+        android:text="@string/titulo_agregar_cliente"
         android:textSize="18sp"
         android:textStyle="bold" />
 
@@ -17,7 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="Nombre"
+        android:hint="@string/hint_nombre"
         android:inputType="textPersonName" />
 
     <EditText
@@ -25,7 +25,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:hint="Apellido"
+        android:hint="@string/hint_apellido"
         android:inputType="textPersonName" />
 
     <EditText
@@ -33,7 +33,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:hint="Teléfono"
+        android:hint="@string/hint_telefono"
         android:inputType="phone" />
 
     <EditText
@@ -41,7 +41,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:hint="Email"
+        android:hint="@string/hint_email"
         android:inputType="textEmailAddress" />
 
     <EditText
@@ -49,7 +49,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:hint="Dirección / Localidad"
+        android:hint="@string/hint_direccion"
         android:inputType="textPostalAddress" />
 
 </LinearLayout>

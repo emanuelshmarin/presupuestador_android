@@ -13,15 +13,13 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.android.volley.Request;
-import com.android.volley.toolbox.JsonObjectRequest;
-
 import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
 
     private EditText etEmail;
     private EditText etPassword;
+    private Button btnIngresar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,37 +32,25 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Referencias
         etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
-        Button btnIngresar = findViewById(R.id.btnIngresar);
+        btnIngresar = findViewById(R.id.btnIngresar);
         TextView txtIrRegistro = findViewById(R.id.txtIrRegistro);
 
-        // Acción para ir a Registro
         txtIrRegistro.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, RegistroActivity.class);
-                startActivity(intent);
+                startActivity(new Intent(MainActivity.this, RegistroActivity.class));
             }
         });
 
-        // Acción para el botón Ingresar
-        btnIngresar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                hacerLogin(); // Llamamos a nuestro método
-            }
-        });
+        btnIngresar.setOnClickListener(v -> hacerLogin());
     }
 
-    // --- ACÁ EMPIEZA LA LÓGICA DEL LOGIN ---
     private void hacerLogin() {
-        // 1. Leer los campos
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString();
 
-        // 2. Validar en el cliente
         if (email.isEmpty()) {
             etEmail.setError("Ingresá tu email");
             etEmail.requestFocus();
@@ -76,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // 3. Armar el JSON
         JSONObject body = new JSONObject();
         try {
             body.put("email_usuario", email);
@@ -86,44 +71,33 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // 4. Armar la URL
-        String url = ApiClient.BASE_URL + "login.php";
+        // Evita enviar dos veces si se toca el botón repetido
+        btnIngresar.setEnabled(false);
 
-        // 5. Crear la petición POST con Volley
-        JsonObjectRequest request = new JsonObjectRequest(
-                Request.Method.POST,
-                url,
-                body,
-                response -> manejarRespuestaExitosa(response),
-                error -> manejarError(error)
-        );
+        ApiHttp.pedir("POST", "login.php", body.toString(),
+                "application/json; charset=UTF-8",
+                (codigo, cuerpo) -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    btnIngresar.setEnabled(true);
 
-        // 6. Encolar la petición
-        ApiClient.getInstance(this).getCola().add(request);
-    }
-
-    // --- MANEJO DE RESPUESTAS ---
-    private void manejarRespuestaExitosa(JSONObject response) {
-        String nombre = response.optString("nombre", "usuario");
-        Toast.makeText(this, "¡Bienvenido, " + nombre + "!", Toast.LENGTH_SHORT).show();
-
-        Intent intent = new Intent(MainActivity.this, HomeActivity.class);
-        startActivity(intent);
-        finish();
-    }
-
-    private void manejarError(com.android.volley.VolleyError error) {
-        if (error.networkResponse != null && error.networkResponse.data != null) {
-            try {
-                String jsonStr = new String(error.networkResponse.data, "UTF-8");
-                JSONObject jsonError = new JSONObject(jsonStr);
-                String mensaje = jsonError.optString("error", "Credenciales inválidas");
-                Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show();
-            } catch (Exception e) {
-                Toast.makeText(this, "Error del servidor", Toast.LENGTH_LONG).show();
-            }
-        } else {
-            Toast.makeText(this, "No se pudo conectar al servidor", Toast.LENGTH_LONG).show();
-        }
+                    if (codigo == 200) {
+                        String nombre = "usuario";
+                        try {
+                            nombre = new JSONObject(cuerpo).optString("nombre", "usuario");
+                        } catch (Exception ignorada) { }
+                        Toast.makeText(this, "¡Bienvenido, " + nombre + "!", Toast.LENGTH_SHORT).show();
+                        startActivity(new Intent(MainActivity.this, HomeActivity.class));
+                        finish();
+                    } else if (codigo == -1) {
+                        Toast.makeText(this, "No se pudo conectar al servidor", Toast.LENGTH_LONG).show();
+                    } else {
+                        String mensaje = "Credenciales inválidas";
+                        try {
+                            String api = new JSONObject(cuerpo).optString("error", "");
+                            if (!api.isEmpty()) mensaje = api;
+                        } catch (Exception ignorada) { }
+                        Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 }

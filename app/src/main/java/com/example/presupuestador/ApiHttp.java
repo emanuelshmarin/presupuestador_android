@@ -22,6 +22,13 @@ public class ApiHttp {
     private static final ExecutorService hilo = Executors.newSingleThreadExecutor();
     private static final Handler principal = new Handler(Looper.getMainLooper());
 
+    static {
+        // Guarda la cookie de sesión del login para los pedidos siguientes
+        if (java.net.CookieHandler.getDefault() == null) {
+            java.net.CookieHandler.setDefault(new java.net.CookieManager());
+        }
+    }
+
     public static void pedir(String metodo, String ruta, String body,
                              String contentType, Callback callback) {
         hilo.execute(() -> {

@@ -39,6 +39,21 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="@string/label_apellido"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etApellido"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/hint_apellido"
+            android:inputType="textPersonName"
+            android:autofillHints="familyName"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="@string/label_email"
             android:layout_marginBottom="4dp" />
 
@@ -64,13 +79,30 @@
             android:hint="@string/hint_password"
             android:inputType="textPassword"
             android:autofillHints="newPassword"
-            android:layout_marginBottom="32dp" />
+            android:layout_marginBottom="16dp" />
+
+        <CheckBox
+            android:id="@+id/chkMatricula"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/chk_matricula"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etNroMatricula"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/hint_nro_matricula"
+            android:inputType="number"
+            android:visibility="gone"
+            android:layout_marginBottom="16dp" />
 
         <Button
             android:id="@+id/btnRegistrar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/btn_registrar"
+            android:layout_marginTop="16dp"
             android:layout_marginBottom="16dp" />
 
         <TextView

@@ -11,8 +11,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import com.android.volley.Request;
-import com.android.volley.toolbox.JsonArrayRequest;
+import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -56,25 +55,35 @@ public class ClientesFragment extends Fragment {
         return view;
     }
 
+    // Arma el texto del Toast según el código y el cuerpo de la respuesta
+    private String mensajeError(int codigo, String cuerpo) {
+        if (codigo == -1) {
+            return "Sin conexión con el servidor";
+        }
+        try {
+            String mensajeApi = new JSONObject(cuerpo).optString("error", "");
+            if (!mensajeApi.isEmpty()) return mensajeApi;
+        } catch (Exception ignorada) { }
+        return "Error (código " + codigo + ")";
+    }
+
     private void pedirClientes() {
-        String url = ApiClient.BASE_URL + "clientes.php";
+        ApiHttp.pedir("GET", "clientes.php", null, null, (codigo, cuerpo) -> {
+            if (!isAdded()) return;
+            Log.d("CLIENTES", "GET codigo: " + codigo);
 
-        JsonArrayRequest request = new JsonArrayRequest(
-                Request.Method.GET,
-                url,
-                null,
-                response -> {
-                    Log.d("CLIENTES", "Respuesta: " + response.toString());
-                    listaClientesCompleta = response; // Guardamos la lista completa
-                    adapter = new ClienteAdapter(response);
+            if (codigo == 200) {
+                try {
+                    listaClientesCompleta = new JSONArray(cuerpo);
+                    adapter = new ClienteAdapter(listaClientesCompleta);
                     recycler.setAdapter(adapter);
-                },
-                error -> {
-                    Log.e("CLIENTES", "Error: " + error.toString());
+                } catch (Exception e) {
+                    Toast.makeText(requireContext(), "Respuesta inválida del servidor", Toast.LENGTH_LONG).show();
                 }
-        );
-
-        ApiClient.getInstance(requireContext()).getCola().add(request);
+            } else {
+                Toast.makeText(requireContext(), mensajeError(codigo, cuerpo), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void mostrarDialogoAgregarCliente() {
@@ -97,7 +106,7 @@ public class ClientesFragment extends Fragment {
                     String direccion = etDireccion.getText().toString().trim();
 
                     if (nombre.isEmpty()) {
-                        android.widget.Toast.makeText(requireContext(), "El nombre es obligatorio", android.widget.Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "El nombre es obligatorio", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -109,25 +118,23 @@ public class ClientesFragment extends Fragment {
                         body.put("email", email);
                         body.put("direccion", direccion);
                     } catch (Exception e) {
-                        android.widget.Toast.makeText(requireContext(), "Error armando los datos", android.widget.Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "Error armando los datos", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    String url = ApiClient.BASE_URL + "clientes.php";
-                    com.android.volley.toolbox.JsonObjectRequest request = new com.android.volley.toolbox.JsonObjectRequest(
-                            Request.Method.POST,
-                            url,
-                            body,
-                            response -> {
-                                android.widget.Toast.makeText(requireContext(), "Cliente guardado", android.widget.Toast.LENGTH_SHORT).show();
-                                pedirClientes();
-                            },
-                            error -> {
-                                Log.e("CLIENTES", "Error al guardar: " + error.toString());
-                                android.widget.Toast.makeText(requireContext(), "Error al guardar el cliente", android.widget.Toast.LENGTH_SHORT).show();
-                            }
-                    );
-                    ApiClient.getInstance(requireContext()).getCola().add(request);
+                    ApiHttp.pedir("POST", "clientes.php", body.toString(),
+                            "application/json; charset=UTF-8",
+                            (codigo, cuerpo) -> {
+                                if (!isAdded()) return;
+                                Log.d("CLIENTES", "POST codigo: " + codigo + " cuerpo: " + cuerpo);
+
+                                if (codigo == 200 || codigo == 201) {
+                                    Toast.makeText(requireContext(), "Cliente guardado", Toast.LENGTH_SHORT).show();
+                                    pedirClientes();
+                                } else {
+                                    Toast.makeText(requireContext(), mensajeError(codigo, cuerpo), Toast.LENGTH_LONG).show();
+                                }
+                            });
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();

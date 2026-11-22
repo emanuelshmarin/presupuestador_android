@@ -10,14 +10,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
-import com.android.volley.Request;
-import com.android.volley.toolbox.JsonArrayRequest;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.EditText;
+import android.widget.Toast;
 
 public class PresupuestoFragment extends Fragment {
 
@@ -61,25 +60,35 @@ public class PresupuestoFragment extends Fragment {
         return view;
     }
 
+    // Arma el texto del Toast según el código y el cuerpo de la respuesta
+    private String mensajeError(int codigo, String cuerpo) {
+        if (codigo == -1) {
+            return "Sin conexión con el servidor";
+        }
+        try {
+            String mensajeApi = new JSONObject(cuerpo).optString("error", "");
+            if (!mensajeApi.isEmpty()) return mensajeApi;
+        } catch (Exception ignorada) { }
+        return "Error (código " + codigo + ")";
+    }
+
     private void pedirPresupuestos() {
-        String url = ApiClient.BASE_URL + "presupuestos.php";
+        ApiHttp.pedir("GET", "presupuestos.php", null, null, (codigo, cuerpo) -> {
+            if (!isAdded()) return;
+            Log.d("PRESUPUESTOS", "GET codigo: " + codigo);
 
-        JsonArrayRequest request = new JsonArrayRequest(
-                Request.Method.GET,
-                url,
-                null,
-                response -> {
-                    Log.d("PRESUPUESTOS", "Respuesta: " + response.toString());
-                    listaPresupuestosCompleta = response;
-                    adapter = new PresupuestoAdapter(response);
+            if (codigo == 200) {
+                try {
+                    listaPresupuestosCompleta = new JSONArray(cuerpo);
+                    adapter = new PresupuestoAdapter(listaPresupuestosCompleta);
                     recycler.setAdapter(adapter);
-                },
-                error -> {
-                    Log.e("PRESUPUESTOS", "Error: " + error.toString());
+                } catch (Exception e) {
+                    Toast.makeText(requireContext(), "Respuesta inválida del servidor", Toast.LENGTH_LONG).show();
                 }
-        );
-
-        ApiClient.getInstance(requireContext()).getCola().add(request);
+            } else {
+                Toast.makeText(requireContext(), mensajeError(codigo, cuerpo), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void filtrarPresupuestos(String texto) {
@@ -104,6 +113,57 @@ public class PresupuestoFragment extends Fragment {
         recycler.setAdapter(adapter);
     }
 
+    private void cargarClientes(Spinner spinnerCliente) {
+        ApiHttp.pedir("GET", "clientes.php", null, null, (codigo, cuerpo) -> {
+            if (!isAdded()) return;
+
+            if (codigo == 200) {
+                try {
+                    JSONArray lista = new JSONArray(cuerpo);
+                    listaClientes.clear();
+                    for (int i = 0; i < lista.length(); i++) {
+                        JSONObject obj = lista.getJSONObject(i);
+                        String nombreCompleto = obj.optString("nombre", "") + " " + obj.optString("apellido", "");
+                        listaClientes.add(new Opcion(obj.getInt("id"), nombreCompleto.trim()));
+                    }
+                    ArrayAdapter<Opcion> adapterCliente = new ArrayAdapter<>(
+                            requireContext(), android.R.layout.simple_spinner_item);
+                    adapterCliente.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    adapterCliente.addAll(listaClientes);
+                    spinnerCliente.setAdapter(adapterCliente);
+                } catch (Exception e) {
+                    Toast.makeText(requireContext(), "Respuesta inválida del servidor", Toast.LENGTH_LONG).show();
+                }
+            } else {
+                Toast.makeText(requireContext(), mensajeError(codigo, cuerpo), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void cargarTrabajos(LinearLayout contenedorTrabajos) {
+        ApiHttp.pedir("GET", "precios.php", null, null, (codigo, cuerpo) -> {
+            if (!isAdded()) return;
+
+            if (codigo == 200) {
+                try {
+                    JSONArray lista = new JSONArray(cuerpo);
+                    listaTrabajos.clear();
+                    for (int i = 0; i < lista.length(); i++) {
+                        JSONObject obj = lista.getJSONObject(i);
+                        String descripcion = obj.optString("trabajo", "-") + " ($" + obj.optString("precio", "0") + ")";
+                        listaTrabajos.add(new Opcion(obj.getInt("id_trabajo"), descripcion));
+                    }
+                    // Agregar una fila de trabajo por defecto
+                    agregarFilaTrabajo(contenedorTrabajos);
+                } catch (Exception e) {
+                    Toast.makeText(requireContext(), "Respuesta inválida del servidor", Toast.LENGTH_LONG).show();
+                }
+            } else {
+                Toast.makeText(requireContext(), mensajeError(codigo, cuerpo), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
     private void mostrarDialogoAgregarPresupuesto() {
         View dialogView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_agregar_presupuesto, null);
@@ -112,58 +172,8 @@ public class PresupuestoFragment extends Fragment {
         LinearLayout contenedorTrabajos = dialogView.findViewById(R.id.contenedorTrabajos);
         Button btnAgregarTrabajo = dialogView.findViewById(R.id.btnAgregarTrabajo);
 
-        // Pedir clientes
-        String urlClientes = ApiClient.BASE_URL + "clientes.php";
-        JsonArrayRequest requestClientes = new JsonArrayRequest(
-                Request.Method.GET,
-                urlClientes,
-                null,
-                response -> {
-                    listaClientes.clear();
-                    ArrayAdapter<Opcion> adapterCliente = new ArrayAdapter<>(
-                            requireContext(),
-                            android.R.layout.simple_spinner_item
-                    );
-                    adapterCliente.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                    for (int i = 0; i < response.length(); i++) {
-                        try {
-                            JSONObject obj = response.getJSONObject(i);
-                            String nombreCompleto = obj.optString("nombre", "") + " " + obj.optString("apellido", "");
-                            listaClientes.add(new Opcion(obj.getInt("id"), nombreCompleto.trim()));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    adapterCliente.addAll(listaClientes);
-                    spinnerCliente.setAdapter(adapterCliente);
-                },
-                error -> Log.e("PRESUPUESTOS", "Error clientes: " + error.toString())
-        );
-        ApiClient.getInstance(requireContext()).getCola().add(requestClientes);
-
-        // Pedir trabajos (precios)
-        String urlTrabajos = ApiClient.BASE_URL + "precios.php";
-        JsonArrayRequest requestTrabajos = new JsonArrayRequest(
-                Request.Method.GET,
-                urlTrabajos,
-                null,
-                response -> {
-                    listaTrabajos.clear();
-                    for (int i = 0; i < response.length(); i++) {
-                        try {
-                            JSONObject obj = response.getJSONObject(i);
-                            String descripcion = obj.optString("trabajo", "-") + " ($" + obj.optString("precio", "0") + ")";
-                            listaTrabajos.add(new Opcion(obj.getInt("id_trabajo"), descripcion));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    // Agregar una fila de trabajo por defecto
-                    agregarFilaTrabajo(contenedorTrabajos);
-                },
-                error -> Log.e("PRESUPUESTOS", "Error trabajos: " + error.toString())
-        );
-        ApiClient.getInstance(requireContext()).getCola().add(requestTrabajos);
+        cargarClientes(spinnerCliente);
+        cargarTrabajos(contenedorTrabajos);
 
         // Botón para agregar otra fila de trabajo
         btnAgregarTrabajo.setOnClickListener(v -> agregarFilaTrabajo(contenedorTrabajos));
@@ -175,7 +185,7 @@ public class PresupuestoFragment extends Fragment {
                     // 1. Leer el cliente seleccionado
                     Opcion clienteSeleccionado = (Opcion) spinnerCliente.getSelectedItem();
                     if (clienteSeleccionado == null) {
-                        android.widget.Toast.makeText(requireContext(), "Elegí un cliente", android.widget.Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "Elegí un cliente", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -190,7 +200,7 @@ public class PresupuestoFragment extends Fragment {
                         String cantidadStr = etCantidad.getText().toString().trim();
 
                         if (trabajoSeleccionado == null || cantidadStr.isEmpty()) {
-                            android.widget.Toast.makeText(requireContext(), "Completá todos los trabajos y cantidades", android.widget.Toast.LENGTH_SHORT).show();
+                            Toast.makeText(requireContext(), "Completá todos los trabajos y cantidades", Toast.LENGTH_SHORT).show();
                             return;
                         }
 
@@ -200,13 +210,13 @@ public class PresupuestoFragment extends Fragment {
                             item.put("cantidad", Integer.parseInt(cantidadStr));
                             items.put(item);
                         } catch (Exception e) {
-                            android.widget.Toast.makeText(requireContext(), "Error armando los items", android.widget.Toast.LENGTH_SHORT).show();
+                            Toast.makeText(requireContext(), "Error armando los items", Toast.LENGTH_SHORT).show();
                             return;
                         }
                     }
 
                     if (items.length() == 0) {
-                        android.widget.Toast.makeText(requireContext(), "Agregá al menos un trabajo", android.widget.Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "Agregá al menos un trabajo", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -216,29 +226,24 @@ public class PresupuestoFragment extends Fragment {
                         body.put("id_cliente", clienteSeleccionado.id);
                         body.put("items", items);
                     } catch (Exception e) {
-                        android.widget.Toast.makeText(requireContext(), "Error armando los datos", android.widget.Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "Error armando los datos", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
                     // 4. Enviar el POST
-                    String url = ApiClient.BASE_URL + "presupuestos.php";
-                    com.android.volley.toolbox.JsonObjectRequest request = new com.android.volley.toolbox.JsonObjectRequest(
-                            Request.Method.POST,
-                            url,
-                            body,
-                            response -> {
-                                android.widget.Toast.makeText(requireContext(), "Presupuesto guardado", android.widget.Toast.LENGTH_SHORT).show();
-                                pedirPresupuestos(); // Recargar la lista
-                            },
-                            error -> {
-                                Log.e("PRESUPUESTOS", "Error al guardar: " + error.toString());
-                                if (error.networkResponse != null && error.networkResponse.data != null) {
-                                    Log.e("PRESUPUESTOS", "Respuesta del servidor: " + new String(error.networkResponse.data));
+                    ApiHttp.pedir("POST", "presupuestos.php", body.toString(),
+                            "application/json; charset=UTF-8",
+                            (codigo, cuerpo) -> {
+                                if (!isAdded()) return;
+                                Log.d("PRESUPUESTOS", "POST codigo: " + codigo + " cuerpo: " + cuerpo);
+
+                                if (codigo == 200 || codigo == 201) {
+                                    Toast.makeText(requireContext(), "Presupuesto guardado", Toast.LENGTH_SHORT).show();
+                                    pedirPresupuestos(); // Recargar la lista
+                                } else {
+                                    Toast.makeText(requireContext(), mensajeError(codigo, cuerpo), Toast.LENGTH_LONG).show();
                                 }
-                                android.widget.Toast.makeText(requireContext(), "Error al guardar el presupuesto", android.widget.Toast.LENGTH_SHORT).show();
-                            }
-                    );
-                    ApiClient.getInstance(requireContext()).getCola().add(request);
+                            });
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -285,6 +290,14 @@ public class PresupuestoFragment extends Fragment {
                 holder.txtCliente.setText(presupuesto.optString("cliente", "-"));
                 holder.txtTotal.setText("$" + presupuesto.optString("total", "0"));
                 holder.txtEstado.setText(presupuesto.optString("estado", "-"));
+                holder.itemView.setOnClickListener(v -> {
+                    android.util.Log.d("PRESUPUESTOS", "JSON tocado: " + presupuesto.toString());
+                    android.content.Intent intent = new android.content.Intent(
+                            v.getContext(), DetallePresupuestoActivity.class);
+                    intent.putExtra(DetallePresupuestoActivity.EXTRA_ID, presupuesto.optInt("id"));
+                    intent.putExtra(DetallePresupuestoActivity.EXTRA_NRO, presupuesto.optString("nro", "-"));
+                    v.getContext().startActivity(intent);
+                });
             } catch (Exception e) {
                 e.printStackTrace();
             }
