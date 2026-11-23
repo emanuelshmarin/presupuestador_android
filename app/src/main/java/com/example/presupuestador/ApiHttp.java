@@ -23,10 +23,9 @@ public class ApiHttp {
     private static final Handler principal = new Handler(Looper.getMainLooper());
 
     static {
-        // Guarda la cookie de sesión del login para los pedidos siguientes
-        if (java.net.CookieHandler.getDefault() == null) {
-            java.net.CookieHandler.setDefault(new java.net.CookieManager());
-        }
+        java.net.CookieManager cookieManager = new java.net.CookieManager();
+        cookieManager.setCookiePolicy(java.net.CookiePolicy.ACCEPT_ALL);
+        java.net.CookieHandler.setDefault(cookieManager);
     }
 
     public static void pedir(String metodo, String ruta, String body,
